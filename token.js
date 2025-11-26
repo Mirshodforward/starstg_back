@@ -10,6 +10,36 @@ const ADMIN_IDS = process.env.ADMIN_IDS.split(',').map(id => Number(id));
 const APP_URL = process.env.WEBAPP_URL;
 
 // ===============================
+// CHIROYLI START XABARI
+// ===============================
+function getStartText(name) {
+  return `
+🌟 *StarsPaymee botiga xush kelibsiz, ${name}!*
+
+Bu yerda siz quyidagi xizmatlardan foydalanishingiz mumkin:
+
+⭐ *Telegram Stars* — botlar, mini-apps, reklama, tolovlar uchun  
+💎 *Premium* — limitlar ochiladi, yuklab olish, tezlik va boshqa qulayliklar
+
+🪙 *To‘lovlar tiyinigacha aniq*!  
+💳 To‘lovlar 100% xavfsiz va avtomatik tarzda tasdiqlanadi.
+
+
+`;
+}
+
+// ===============================
+// ADMIN START XABARI
+// ===============================
+function getAdminText(name) {
+  return `
+👑 *Admin panelga xush kelibsiz, ${name}!*
+
+Quyida boshqaruv paneliga o‘tishingiz mumkin:
+`;
+}
+
+// ===============================
 // /start komandasi
 // ===============================
 bot.start(async (ctx) => {
@@ -18,27 +48,28 @@ bot.start(async (ctx) => {
 
   // Agar Admin bo‘lsa
   if (ADMIN_IDS.includes(userId)) {
-    await ctx.reply(
-      `👑 Admin aka, xush kelibsiz!\n\n${fullName}, siz admin panelga kirdingiz.`,
+    await ctx.replyWithMarkdown(
+      getAdminText(fullName),
       Markup.inlineKeyboard([
         [
-          Markup.button.webApp("⭐ Stars panel", APP_URL + "/starsadmin"),
-          Markup.button.webApp("💎 Premium panel", APP_URL + "/premiumadmin")
+          Markup.button.webApp("⭐ Stars Admin", `${APP_URL}/starsadmin`),
+          Markup.button.webApp("💎 Premium Admin", `${APP_URL}/premiumadmin`)
         ]
+        
       ])
     );
     return;
   }
 
-  // Oddiy user uchun xabar
-  await ctx.reply(
-    `🌟 PremiumFaster botiga xush kelibsiz, ${fullName}!\n\nIltimos, quyidagi xizmatlardan birini tanlang:`,
-
+  // Oddiy user uchun Start menyu
+  await ctx.replyWithMarkdown(
+    getStartText(fullName),
     Markup.inlineKeyboard([
       [
-        Markup.button.webApp("⭐ Stars olish", APP_URL + "/stars"),
-        Markup.button.webApp("💎 Premium olish", APP_URL + "/premium")
+        Markup.button.webApp("⭐ Stars olish", `${APP_URL}/`),
+        Markup.button.webApp("💎 Premium olish", `${APP_URL}/premium`)
       ]
+      
     ])
   );
 });

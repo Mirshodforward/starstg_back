@@ -407,8 +407,8 @@ async function sendStarsToUser(orderId, recipientId, stars) {
       idempotency_key: idempotencyKey,
     };
 
-    //const purchaseRes = await fetch("https://robynhood.parssms.info/api/purchase", {  // real
-    const purchaseRes = await fetch("https://robynhood.parssms.info/api/test/purchase", { // test
+    const purchaseRes = await fetch("https://robynhood.parssms.info/api/purchase", {  // real
+    //const purchaseRes = await fetch("https://robynhood.parssms.info/api/test/purchase", { // test
 
       method: "POST",
       headers: {
@@ -735,8 +735,8 @@ async function sendPremiumToUser(orderId, recipientId, months) {
 
     console.log("🌐 Providerga so‘rov yuborilmoqda:", body);
 
-    //const resp = await fetch("https://robynhood.parssms.info/api/purchase", {   // real
-    const resp = await fetch("https://robynhood.parssms.info/api/test/purchase", {    //test
+    const resp = await fetch("https://robynhood.parssms.info/api/purchase", {   // real
+    //const resp = await fetch("https://robynhood.parssms.info/api/test/purchase", {    //test
       method: "POST",
       headers: {
         "Content-Type": "application/json",
