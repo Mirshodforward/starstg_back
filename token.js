@@ -85,8 +85,7 @@ bot.start(async (ctx) => {
     getStartText(fullName),
     Markup.inlineKeyboard([
       [
-        Markup.button.webApp("⭐ Stars olish", `${APP_URL}/`),
-        Markup.button.webApp("💎 Premium olish", `${APP_URL}/premium`)
+        Markup.button.webApp("⭐ web app", `${APP_URL}/premium`)
       ]
     ])
   );
