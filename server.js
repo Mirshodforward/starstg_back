@@ -1019,16 +1019,13 @@ app.patch("/api/admin/secret/update", async (req, res) => {
 
 
 
+
 // ======================
-// TEST API CALLBACK (2-qismni qabul qilish)
+//      callback
 // ======================
-let part2_global = null;    // vaqtincha saqlash uchun
 
 app.post("/api/interview/callback", (req, res) => {
-  console.log("📩 TEST API callback keldi:", req.body);
-
-  // kelgan JSONni saqlaymiz
-  part2_global = req.body;
+  console.log("1-qism:", req.body);
 
   res.json({ received: true });
 });
@@ -1036,7 +1033,7 @@ app.post("/api/interview/callback", (req, res) => {
 
 
 // ======================
-// 7️⃣ Serverni ishga tushirish
+// run server
 // ======================
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Backend running on port ${PORT}`));
