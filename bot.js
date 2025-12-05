@@ -41,6 +41,43 @@ function parsePayment(text) {
 
   return { card_last4, amount, raw_text: text };
 }
+// Simple fetch with timeout
+async function fetchWithTimeout(url, options = {}, timeout = 8000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return res;
+  } catch (err) {
+    clearTimeout(id);
+    throw err;
+  }
+}
+
+// ================== AutoReconnect (exponential backoff) ==================
+async function autoReconnect(client) {
+  let backoff = 2000; // 2s
+  const maxBackoff = 60000; // 60s
+
+  while (true) {
+    try {
+      if (!client.connected) {
+        console.warn("⚠️ Aloqa uzildi! Qayta ulanmoqda...");
+        await client.connect();
+        console.log("✅ Qayta ulandi!");
+        backoff = 2000; // reset backoff on success
+      }
+    } catch (err) {
+      console.error("❌ Qayta ulanish xatosi:", err?.message || err);
+      // increase backoff
+      await new Promise((r) => setTimeout(r, backoff));
+      backoff = Math.min(backoff * 2, maxBackoff);
+    }
+    // check every 3s if connected, otherwise loop will try connect sooner due to backoff
+    await new Promise((res) => setTimeout(res, 3000));
+  }
+}
 
 // ================== MAIN ==================
 async function main() {
@@ -48,13 +85,23 @@ async function main() {
     new StringSession(TG_SESSION),
     TG_API_ID,
     TG_API_HASH,
-    { connectionRetries: 5 }
+    { connectionRetries: 50 } // 10 is fine when we have our own reconnect logic
   );
 
   console.log("⏳ Telegramga ulanmoqda...");
-  await client.connect();
+
+  try {
+    await client.start();
+  } catch (err) {
+    console.error("❌ client.start() xatosi:", err);
+    process.exit(1);
+  }
+
   console.log("✅ Telegram client ulandi!");
   console.log("📡 Faqat HUMO botini kuzatamiz...");
+
+  // Start autoReconnect in background (don't await)
+  autoReconnect(client).catch((e) => console.error("autoReconnect failed:", e));
 
   // ================== PAYMENT HANDLER (YAGONA HANDLER) ==================
   client.addEventHandler(
@@ -118,6 +165,24 @@ async function main() {
     },
     new NewMessage({})
   );
+  // Graceful shutdown handlers
+  const shutdown = async (sig) => {
+    console.log(`\n🛑 Qabul qilindi ${sig}. Clientni yopilmoqda...`);
+    try {
+      await client.disconnect();
+      console.log("✅ Client uzildi. Jarayon tugaydi.");
+    } catch (e) {
+      console.error("❌ Clientni uzishda xato:", e);
+    } finally {
+      process.exit(0);
+    }
+  };
+
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+  // KEEP PROCESS ALIVE (GramJS has no runUntilDisconnected)
+  await new Promise(() => {});
 }
 
 // ================== RUN ==================
