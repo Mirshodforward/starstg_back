@@ -9,96 +9,101 @@ const TG_API_ID = Number(process.env.TG_API_ID);
 const TG_API_HASH = process.env.TG_API_HASH;
 const TG_SESSION = process.env.TG_SESSION;
 
-const HUMO_CHAT_ID = String(process.env.HUMO_CHAT_ID); // Bot user ID
+const HUMO_CHAT_ID = String(process.env.HUMO_CHAT_ID); // 856254490
 const TARGET_CARD_SUFFIX = process.env.TARGET_CARD_SUFFIX?.replace(/\D/g, "").slice(-4);
 
 const MATCH_API_STARS = process.env.MATCH_API_STARS;
 const MATCH_API_PREMIUM = process.env.MATCH_API_PREMIUM;
 
-// Validation
+// ================== VALIDATION ==================
 if (!TG_API_ID || !TG_API_HASH || !TG_SESSION || !HUMO_CHAT_ID || !TARGET_CARD_SUFFIX) {
   console.error("❌ .env dagi o'zgaruvchilar yetarli emas!");
   process.exit(1);
 }
 
-// ================== PARSER ==================
+// ================== PAYMENT PARSER ==================
 function parsePayment(text) {
   if (!text) return null;
 
   const cardMatch = text.match(/HUMOCARD\s*\*?(\d{4})/i);
-  const card_last4 = cardMatch ? cardMatch[1] : null;
-
   const amountMatch = text.match(/➕\s*([\d.,]+)\s*UZS/i);
-  if (!amountMatch) return null;
 
-  const amountRaw = amountMatch[1]
-    .replace(/\./g, "")
-    .replace(",", ".");
+  if (!cardMatch || !amountMatch) return null;
 
-  const amount = parseFloat(amountRaw);
+  const card_last4 = cardMatch[1];
 
-  if (!card_last4 || !amount) return null;
+  const amount = parseFloat(
+    amountMatch[1].replace(/\./g, "").replace(",", ".")
+  );
+
+  if (!amount || isNaN(amount)) return null;
 
   return { card_last4, amount, raw_text: text };
 }
 
-// ================== MAIN ==================
-async function main() {
+// ================== MAIN FUNCTION ==================
+async function createClient() {
   const client = new TelegramClient(
     new StringSession(TG_SESSION),
     TG_API_ID,
     TG_API_HASH,
-    { connectionRetries: 5 }
+    { connectionRetries: Infinity }
   );
 
-  console.log("⏳ Telegramga ulanmoqda...");
-  await client.connect();
-  console.log("✅ Telegram client ulandi!");
-  console.log("📡 Faqat HUMO botini kuzatamiz...");
+  async function startSafe() {
+    while (true) {
+      try {
+        console.log("⏳ Telegramga ulanmoqda...");
+        await client.start();
+        console.log("✅ Telegram client ulandi!");
+        console.log("📡 HUMO botini kuzatish boshlandi...");
+        break;
+      } catch (e) {
+        console.error("❌ Ulanishda xato, qayta urinyapti:", e.message);
+        await new Promise(res => setTimeout(res, 5000));
+      }
+    }
+  }
 
-  // ================== PAYMENT HANDLER (YAGONA HANDLER) ==================
+  await startSafe();
+
+  // ================== HANDLER ==================
   client.addEventHandler(
     async (event) => {
       try {
         const msg = event.message;
-        if (!msg) return;
+        if (!msg || !msg.message) return;
 
-        // 1) Peer ID → faqat HUMO bot xabarlari
-        const peerId =
-          msg.peerId?.channelId ??
-          msg.peerId?.chatId ??
-          msg.peerId?.userId;
+        // HUMO botni aniqlash (100% to‘g‘ri)
+        const senderId =
+          msg.senderId?.userId ||
+          msg.peerId?.userId ||
+          msg.peerId?.channelId ||
+          msg.peerId?.chatId;
 
-        if (String(peerId) !== HUMO_CHAT_ID) return;
+        if (String(senderId) !== HUMO_CHAT_ID) return;
 
-        // 2) Debug — faqat HUMO bot uchun
-        console.log("📩 [HUMO] Xabar keldi:", {
-          peerId,
-          text: msg.message,
-        });
+        const text = msg.message;
+        console.log("📩 [HUMO] Xabar keldi:", text);
 
-        // 3) Text olib
-        const text = msg.message || "";
         if (!text.includes("HUMOCARD")) return;
-
-        // 4) Kartani filtrlaymiz
         if (!text.includes(TARGET_CARD_SUFFIX)) return;
 
-        // 5) Parsing
         const parsed = parsePayment(text);
         if (!parsed) return;
 
-        console.log("💳 To'lov aniqlandi:", parsed);
+        console.log("💳 To'lov aniqlangan:", parsed);
 
-        // 6) Stars API
+        // ================== API REQUEST — STARS ==================
         let res = await fetch(MATCH_API_STARS, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(parsed),
         });
 
+        // Stars topilmasa → PREMIUM
         if (!res.ok) {
-          console.log("⭐ Starsda topilmadi → PREMIUM urinyapti...");
+          console.log("⭐ Stars topilmadi → Premium tekshirilmoqda...");
           res = await fetch(MATCH_API_PREMIUM, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -108,17 +113,20 @@ async function main() {
 
         if (res.ok) {
           const result = await res.json();
-          console.log("🎉 Muvaffaqiyatli topildi:", result);
+          console.log("🎉 Serverda topildi va tasdiqlandi:", result);
         } else {
-          console.log("⚠️ Hech qaysi bazada topilmadi");
+          console.log("⚠️ Hech qaysi bazada topilmadi.");
         }
+
       } catch (err) {
         console.error("❌ Handler xatosi:", err);
       }
     },
     new NewMessage({})
   );
+
+  return client;
 }
 
 // ================== RUN ==================
-main().catch((err) => console.error("❌ Bot ishga tushmadi:", err));
+createClient().catch(err => console.error("❌ Bot ishga tushmadi:", err));
