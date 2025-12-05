@@ -407,7 +407,7 @@ async function sendStarsToUser(orderId, recipientId, stars) {
       idempotency_key: idempotencyKey,
     };
 
-    const purchaseRes = await fetch("https://robynhood.parssms.info/api/test/purchase", {  // real
+    const purchaseRes = await fetch("https://robynhood.parssms.info/api/purchase", {  // real
     //const purchaseRes = await fetch("https://robynhood.parssms.info/api/test/purchase", { // test
 
       method: "POST",
