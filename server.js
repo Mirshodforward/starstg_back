@@ -244,6 +244,8 @@ app.post("/api/order", async (req, res) => {
     const cleanUsername = username.startsWith("@")
       ? username.slice(1)
       : username;
+    
+    const cleanRecipient = String(recipient).trim(); // 🔥 MUHIM FIX
 
     // 🔢 Tasodifiy offset (unique amount uchun)
     let offset = Math.floor(Math.random() * 101) - 50;
@@ -270,7 +272,7 @@ app.post("/api/order", async (req, res) => {
       `INSERT INTO transactions (username, recipient, stars, amount, status, created_at)
        VALUES ($1, $2, $3, $4, 'pending', NOW())
        RETURNING *`,
-      [cleanUsername, recipient, stars, uniqueAmount]
+      [cleanUsername, cleanRecipient, stars, uniqueAmount]
     );
 
     const order = result.rows[0];
@@ -397,12 +399,14 @@ app.post("/api/payments/match", async (req, res) => {
 async function sendStarsToUser(orderId, recipientId, stars) {
   try {
     console.log("🔹 sendStarsToUser:", { orderId, recipientId, stars });
+    // ✅ MUHIM: providerga ketishdan oldin recipientni TRIM qilamiz
+    const cleanRecipient = String(recipientId).trim();
 
     const idempotencyKey = crypto.randomUUID();
 
     const purchaseBody = {
       product_type: "stars",
-      recipient: recipientId,        
+      recipient: cleanRecipient,        
       quantity: String(stars),
       idempotency_key: idempotencyKey,
     };
