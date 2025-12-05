@@ -3,7 +3,8 @@ import fetch from "node-fetch";
 import "dotenv/config";
 
 // ---- TEST UCHUN QIYMATLAR ----
-const RECIPIENT = "1Tlem2_Li29Rg8K-Wxw_dsHOjBjv0R0Oa2aBiigXY3Cm05IKIKGAFxf7WYDviuF_";  // Provider search'dan chiqgan ID qo'yiladi
+//const RECIPIENT = "1Tlem2_Li29Rg8K-Wxw_dsHOjBjv0R0Oa2aBiigXY3Cm05IKIKGAFxf7WYDviuF_";
+const RECIPIENT = "iVxIyuPlAEeWyrIvjUbBuuUX_zEKRpHJBKpACyZNwB4";  // Provider search'dan chiqgan ID qo'yiladi
 const STARS_AMOUNT = "50";              // Nechta yuborilayapti
 const IDEMPOTENCY_KEY = crypto.randomUUID();
 

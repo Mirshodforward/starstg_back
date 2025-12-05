@@ -390,6 +390,51 @@ app.post("/api/payments/match", async (req, res) => {
   }
 });
 
+// ===============================
+// 🔹 ADMIN — SEND STARS MANUALLY
+// ===============================
+app.post("/api/admin/stars/send/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!id) return res.status(400).json({ error: "ID noto‘g‘ri" });
+
+    // Orderni topamiz
+    const q = await pool.query(
+      "SELECT * FROM transactions WHERE id=$1",
+      [id]
+    );
+
+    if (!q.rows.length)
+      return res.status(404).json({ error: "Order topilmadi" });
+
+    const order = q.rows[0];
+
+    if (order.status === "stars_sent")
+      return res.status(400).json({ error: "Yulduzlar allaqachon yuborilgan" });
+
+    if (!order.recipient)
+      return res.status(400).json({ error: "Recipient ID topilmadi" });
+
+    // Yulduz yuborish funksiyasi
+    const result = await sendStarsToUser(order.id, order.recipient, order.stars);
+
+    return res.json({
+      success: true,
+      message: "Stars yuborildi",
+      result,
+    });
+
+  } catch (err) {
+    console.error("❌ ADMIN SEND STARS ERROR:", err);
+    return res.status(500).json({
+      error: "Server xatosi",
+      details: err.message,
+    });
+  }
+});
+
+
 // ======================
 // 🔹 Yulduzlarni foydalanuvchiga yuborish - RobynHood API orqali --------------------------------REAL?TEST
 // ======================
